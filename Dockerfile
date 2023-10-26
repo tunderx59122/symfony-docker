@@ -33,12 +33,30 @@ RUN set -eux; \
 	;
 
 ###> recipes ###
+###> doctrine/doctrine-bundle ###
+RUN apk add --no-cache --virtual .pgsql-deps postgresql-dev; \
+	docker-php-ext-install -j"$(nproc)" pdo_pgsql; \
+	apk add --no-cache --virtual .pgsql-rundeps so:libpq.so.5; \
+	apk del .pgsql-deps
+###< doctrine/doctrine-bundle ###
 ###< recipes ###
 
 COPY --link frankenphp/conf.d/app.ini $PHP_INI_DIR/conf.d/
 COPY --link --chmod=755 frankenphp/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 COPY --link frankenphp/Caddyfile /etc/caddy/Caddyfile
 
+<<<<<<< Updated upstream
+=======
+COPY --link docker/php/php-fpm.d/zz-docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
+RUN mkdir -p /var/run/php
+
+COPY --link --chmod=755 docker/php/docker-healthcheck.sh /usr/local/bin/docker-healthcheck
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 --start-period=40s CMD ["docker-healthcheck"]
+
+COPY --link --chmod=755 docker/php/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
+
+>>>>>>> Stashed changes
 ENTRYPOINT ["docker-entrypoint"]
 
 # https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
@@ -93,3 +111,24 @@ RUN set -eux; \
 	composer dump-env prod; \
 	composer run-script --no-dev post-install-cmd; \
 	chmod +x bin/console; sync;
+<<<<<<< Updated upstream
+=======
+
+
+# Base Caddy image
+FROM caddy_upstream AS caddy_base
+
+ARG TARGETARCH
+
+WORKDIR /srv/app
+
+# Download Caddy compiled with the Mercure and Vulcain modules
+ADD --chmod=500 https://caddyserver.com/api/download?os=linux&arch=$TARGETARCH&p=github.com/dunglas/mercure/caddy&p=github.com/dunglas/vulcain/caddy /usr/bin/caddy
+
+COPY --link docker/caddy/Caddyfile /etc/caddy/Caddyfile
+
+# Prod Caddy image
+FROM caddy_base AS caddy_prod
+
+COPY --from=php_prod --link /srv/app/public public/
+>>>>>>> Stashed changes
